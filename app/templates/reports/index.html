@@ -1,14 +1,270 @@
 {% extends "base.html" %}
 
-{% block title %}Reports — Expense Tracker{% endblock %}
+{% block title %}Monthly Report — {{ month_name }} {{ selected_year }} — Expense Tracker{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="fw-bold mb-3">Monthly Reports</h2>
-        <div class="card p-4 shadow-sm bg-white">
-            <p class="text-muted mb-0">Financial reporting and CSV export module foundation ready.</p>
+<!-- Page Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Monthly Financial Report</h2>
+        <p class="text-muted mb-0">
+            Statement and breakdown for <strong>{{ month_name }} {{ selected_year }}</strong>
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.export_csv', month=selected_month, year=selected_year) }}"
+           class="btn btn-outline-success fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg>
+            Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Period Filter Card -->
+<div class="card shadow-sm border-1 mb-4 bg-white">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('reports.index') }}" class="row g-2 align-items-end">
+            <!-- Month Selector -->
+            <div class="col-12 col-sm-5 col-md-4">
+                <label for="month" class="form-label small fw-semibold text-muted mb-1">Month</label>
+                <select name="month" id="month" class="form-select form-select-sm">
+                    {% for m_num, m_name in month_choices %}
+                        <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>
+                            {{ m_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Year Selector -->
+            <div class="col-12 col-sm-4 col-md-3">
+                <label for="year" class="form-label small fw-semibold text-muted mb-1">Year</label>
+                <select name="year" id="year" class="form-select form-select-sm">
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                            {{ y }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="col-12 col-sm-3 col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm fw-semibold">
+                    Generate Report
+                </button>
+                <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary btn-sm">
+                    Current Month
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Four Summary Metric Cards -->
+<div class="row g-3 mb-4">
+    <!-- Total Income -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-1 h-100 bg-white">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase">Total Income</span>
+                <h3 class="fw-bold text-success my-2 font-monospace">{{ total_income|inr }}</h3>
+                <span class="text-muted small">{{ month_name }} {{ selected_year }}</span>
+            </div>
         </div>
+    </div>
+
+    <!-- Total Expenses -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-1 h-100 bg-white">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase">Total Expenses</span>
+                <h3 class="fw-bold text-danger my-2 font-monospace">{{ total_expenses|inr }}</h3>
+                <span class="text-muted small">{{ month_name }} {{ selected_year }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Balance -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-1 h-100 bg-white">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase">Net Balance</span>
+                <h3 class="fw-bold my-2 font-monospace {% if net_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if net_balance > 0 %}+{% endif %}{{ net_balance|inr }}
+                </h3>
+                <span class="text-muted small">Income minus expenses</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Transactions -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-1 h-100 bg-white">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase">Transactions</span>
+                <h3 class="fw-bold text-dark my-2 font-monospace">{{ total_tx_count }}</h3>
+                <span class="text-muted small">Recorded in period</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Insight Callout Section: Largest Expense Tile -->
+<div class="card shadow-sm border-1 mb-4 bg-white">
+    <div class="card-header bg-white border-bottom py-2 px-3">
+        <span class="fw-bold text-uppercase small text-muted">Key Insight</span>
+    </div>
+    <div class="card-body p-3">
+        {% if largest_expense %}
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                <div>
+                    <span class="text-muted small d-block mb-1">Largest Individual Expense:</span>
+                    <h5 class="fw-bold text-dark mb-1">{{ largest_expense.title }}</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border">{{ largest_expense.category.name }}</span>
+                        <span class="text-muted small font-monospace">{{ largest_expense.transaction_date.strftime('%Y-%m-%d') }}</span>
+                        {% if largest_expense.payment_method %}
+                            <span class="text-muted small">&bull; {{ largest_expense.payment_method }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="text-md-end mt-2 mt-md-0">
+                    <span class="fs-4 fw-bold text-danger font-monospace">-{{ largest_expense.amount|inr }}</span>
+                    {% if total_expenses > 0 %}
+                        <span class="text-muted small d-block">
+                            {{ "%.1f"|format((largest_expense.amount / total_expenses) * 100) }}% of total expenses
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="text-muted small">
+                No expense transactions recorded in this period.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Category-Wise Expense Breakdown -->
+<div class="card shadow-sm border-1 mb-4 bg-white">
+    <div class="card-header bg-white border-bottom py-3 px-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 fs-6">Category-Wise Expense Breakdown</h5>
+        {% if category_breakdown %}
+            <span class="text-muted small">{{ category_breakdown|length }} active categories</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if category_breakdown %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th scope="col" class="ps-3" style="min-width: 180px;">Category Name</th>
+                            <th scope="col" style="min-width: 140px;">Total Spent</th>
+                            <th scope="col" style="min-width: 220px;">Share of Expenses</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in category_breakdown %}
+                            <tr>
+                                <td class="ps-3 fw-semibold text-dark">
+                                    <span class="badge bg-light text-dark border me-1">{{ item.name }}</span>
+                                </td>
+                                <td class="font-monospace fw-bold text-danger">
+                                    {{ item.amount|inr }}
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1" style="height: 12px;" role="progressbar" aria-valuenow="{{ item.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                            <div class="progress-bar bg-danger" style="width: {{ item.percentage }}%;"></div>
+                                        </div>
+                                        <span class="font-monospace small text-muted text-nowrap" style="min-width: 48px;">
+                                            {{ item.percentage }}%
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4 px-3 text-muted small">
+                No expense categories recorded for this month.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Monthly Transaction Ledger Table -->
+<div class="card shadow-sm border-1 mb-4 bg-white">
+    <div class="card-header bg-white border-bottom py-3 px-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 fs-6">Period Transaction Ledger</h5>
+        <span class="text-muted small">{{ transactions|length }} transactions recorded</span>
+    </div>
+    <div class="card-body p-0">
+        {% if transactions %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th scope="col" class="ps-3" style="min-width: 110px;">Date</th>
+                            <th scope="col" style="min-width: 200px;">Title</th>
+                            <th scope="col" style="min-width: 130px;">Category</th>
+                            <th scope="col" style="min-width: 100px;">Type</th>
+                            <th scope="col" class="text-end" style="min-width: 130px;">Amount</th>
+                            <th scope="col" style="min-width: 140px;">Payment Method</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                            <tr>
+                                <td class="ps-3 font-monospace text-muted small">
+                                    {{ tx.transaction_date.strftime('%Y-%m-%d') }}
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-dark">{{ tx.title }}</span>
+                                    {% if tx.description %}
+                                        <span class="text-muted small d-block text-truncate" style="max-width: 280px;" title="{{ tx.description }}">
+                                            {{ tx.description }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ tx.category.name }}</span>
+                                </td>
+                                <td>
+                                    {% if tx.category.type == 'income' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Income</span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Expense</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end font-monospace fw-bold">
+                                    {% if tx.category.type == 'income' %}
+                                        <span class="text-success">+{{ tx.amount|inr }}</span>
+                                    {% else %}
+                                        <span class="text-danger">-{{ tx.amount|inr }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">
+                                    {{ tx.payment_method }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5 px-3">
+                <p class="text-muted fw-semibold mb-1">No Transactions Found</p>
+                <p class="text-muted small mb-0">No transactions found for {{ month_name }} {{ selected_year }}.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

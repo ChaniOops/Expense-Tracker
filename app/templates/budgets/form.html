@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action_title }} — Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card shadow-sm border-1 p-4 bg-white">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h3 class="fw-bold mb-0">{{ action_title }}</h3>
+                <a href="{{ url_for('budgets.index', month=selected_month, year=selected_year) }}" class="btn btn-outline-secondary btn-sm">
+                    Back to Budgets
+                </a>
+            </div>
+
+            <form method="POST" action="" novalidate>
+                {{ form.csrf_token }}
+
+                <!-- Expense Category -->
+                <div class="mb-3">
+                    <label for="category_id" class="form-label fw-semibold">Expense Category</label>
+                    {{ form.category_id(
+                        class="form-select" + (" is-invalid" if form.category_id.errors else ""),
+                        id="category_id",
+                        required=True
+                    ) }}
+                    {% for error in form.category_id.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    <div class="form-text text-muted small">
+                        Budgets can only be set for expense categories.
+                    </div>
+                </div>
+
+                <!-- Budget Amount -->
+                <div class="mb-3">
+                    <label for="amount" class="form-label fw-semibold">Budget Amount (₹)</label>
+                    {{ form.amount(
+                        class="form-control" + (" is-invalid" if form.amount.errors else ""),
+                        id="amount",
+                        placeholder="0.00",
+                        step="0.01",
+                        required=True
+                    ) }}
+                    {% for error in form.amount.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    <div class="form-text text-muted small">
+                        Enter a positive spending limit in Indian Rupees (₹).
+                    </div>
+                </div>
+
+                <!-- Period Row (Month & Year) -->
+                <div class="row g-2 mb-4">
+                    <!-- Month -->
+                    <div class="col-12 col-sm-6">
+                        <label for="month" class="form-label fw-semibold">Month</label>
+                        {{ form.month(
+                            class="form-select" + (" is-invalid" if form.month.errors else ""),
+                            id="month",
+                            required=True
+                        ) }}
+                        {% for error in form.month.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Year -->
+                    <div class="col-12 col-sm-6">
+                        <label for="year" class="form-label fw-semibold">Year</label>
+                        {{ form.year(
+                            class="form-control" + (" is-invalid" if form.year.errors else ""),
+                            id="year",
+                            type="number",
+                            min="2000",
+                            max="2100",
+                            required=True
+                        ) }}
+                        {% for error in form.year.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('budgets.index', month=selected_month, year=selected_year) }}" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                    {{ form.submit(class="btn btn-primary px-4 fw-semibold") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
