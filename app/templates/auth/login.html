@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In — Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-12 col-md-8 col-lg-5">
+        <div class="card shadow-sm border-1 p-4 bg-white">
+            <div class="text-center mb-4">
+                <h3 class="fw-bold mb-1">Welcome Back</h3>
+                <p class="text-muted small">Sign in to manage your finances</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+                {{ form.csrf_token }}
+
+                <!-- Email Field -->
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-semibold">Email Address</label>
+                    {{ form.email(
+                        class="form-control" + (" is-invalid" if form.email.errors else ""),
+                        id="email",
+                        placeholder="name@example.com",
+                        autocomplete="email",
+                        required=True
+                    ) }}
+                    {% for error in form.email.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Password Field -->
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-semibold">Password</label>
+                    {{ form.password(
+                        class="form-control" + (" is-invalid" if form.password.errors else ""),
+                        id="password",
+                        placeholder="Enter your password",
+                        autocomplete="current-password",
+                        required=True
+                    ) }}
+                    {% for error in form.password.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Remember Me Checkbox -->
+                <div class="mb-4 form-check">
+                    {{ form.remember_me(class="form-check-input", id="remember_me") }}
+                    <label class="form-check-label small" for="remember_me">
+                        Remember me on this computer
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-grid mb-3">
+                    {{ form.submit(class="btn btn-primary py-2 fw-semibold") }}
+                </div>
+            </form>
+
+            <div class="border-top pt-3 text-center">
+                <span class="text-muted small">Don't have an account?</span>
+                <a href="{{ url_for('auth.register') }}" class="small fw-semibold ms-1">Create one here</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Flask & SQLite instances
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+
+# Testing & Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE, Editor, and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

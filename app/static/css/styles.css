@@ -1,0 +1,25 @@
+/* Custom Minimal Styles for Expense Tracker */
+
+body {
+    background-color: #f8f9fa;
+    color: #212529;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+footer {
+    flex-shrink: 0;
+}
+
+.table-responsive {
+    border-radius: 0.375rem;
+}
+
+.card {
+    border-color: #dee2e6;
+}
