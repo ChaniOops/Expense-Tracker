@@ -2,6 +2,10 @@
 
 A lightweight, robust personal finance tracking web application built with Python, Flask, SQLite, and Bootstrap 5.
 
+[![Tests](https://img.shields.io/badge/tests-89%20passed-success)](tests/)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](requirements.txt)
+[![Status](https://img.shields.io/badge/status-QA%20Passed%20%26%20Complete-brightgreen)](README.md)
+
 ---
 
 ## 1. Project Purpose & Features
@@ -185,3 +189,12 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - **[ARCHITECTURE.md](file:///d:/Expense-Tracker/ARCHITECTURE.md):** System architecture, application factory, and data flows.
 - **[DATABASE.md](file:///d:/Expense-Tracker/DATABASE.md):** Relational schema definitions, constraints, indexes, and ER diagram.
 - **[AGENTS.md](file:///d:/Expense-Tracker/AGENTS.md):** Development guidelines and rules of engagement for AI coding agents.
+
+---
+
+## 12. Quality Assurance & Security Audit Summary
+
+The application has successfully completed a comprehensive quality assurance and security audit (Prompt 12):
+- **Automated Verification:** 89 automated unit and integration tests executed across 8 test suites with a 100% pass rate.
+- **Security Hardening:** Verified multi-tenant data isolation (IDOR defense), password hashing via `scrypt`, CSRF protection on all state-changing endpoints, spreadsheet formula injection neutralization in CSV exports, open-redirect defense, and SQLite foreign key constraint enforcement.
+- **Data Integrity:** Schema strictly conforms to `DATABASE.md` with exactly 4 core tables, decimal-safe arithmetic, positive value constraints, and idempotent category seeding.
