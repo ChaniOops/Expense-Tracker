@@ -59,6 +59,12 @@ def create_app(config_override=None):
     app.register_blueprint(budgets_bp)
     app.register_blueprint(reports_bp)
 
+    # Register custom Jinja template filters
+    from app.utils import format_inr
+    app.jinja_env.filters['inr'] = format_inr
+    app.jinja_env.filters['currency'] = format_inr
+    app.jinja_env.globals['format_inr'] = format_inr
+
     # Register application error handlers
     @app.errorhandler(404)
     def not_found_error(error):

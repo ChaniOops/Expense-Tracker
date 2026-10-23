@@ -8,7 +8,11 @@
         <h2 class="fw-bold mb-3">Dashboard</h2>
         <div class="card p-4 shadow-sm bg-white">
             <h5 class="card-title text-muted">Welcome to Expense Tracker</h5>
-            <p class="card-text">Foundation established. Feature modules will appear here as development progresses.</p>
+            <p class="card-text">Foundation established. Manage your transactions and track spending below.</p>
+            <div class="mt-3">
+                <a href="{{ url_for('transactions.index') }}" class="btn btn-outline-primary btn-sm me-2">View Transactions</a>
+                <a href="{{ url_for('transactions.create') }}" class="btn btn-primary btn-sm">+ Add Transaction</a>
+            </div>
         </div>
     </div>
 </div>

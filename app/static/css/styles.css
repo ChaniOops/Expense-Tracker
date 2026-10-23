@@ -23,3 +23,39 @@ footer {
 .card {
     border-color: #dee2e6;
 }
+
+/* Password Visibility Toggle inside input */
+.password-field-wrapper {
+    position: relative;
+}
+
+.password-field-wrapper input {
+    padding-right: 2.75rem;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.password-toggle-btn:hover {
+    color: #212529;
+}
+
+.password-toggle-btn:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 1px;
+}
