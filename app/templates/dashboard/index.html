@@ -7,7 +7,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h2 class="fw-bold mb-0">Dashboard</h2>
-        <p class="text-muted small mb-0">Overview for <strong>{{ current_month_name }}</strong></p>
+        <p class="text-muted small mb-0">Overview for <strong>{{ overview_title }}</strong></p>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ url_for('transactions.index') }}" class="btn btn-outline-secondary btn-sm fw-semibold">
@@ -19,6 +19,61 @@
     </div>
 </div>
 
+<!-- Period Filter Card -->
+<div class="card shadow-sm border-1 mb-4 bg-white">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('main.index') }}" class="row g-2 align-items-end" id="dashboardFilterForm">
+            <!-- Time Range Option (Particular Month, Full Year, All Time) -->
+            <div class="col-12 col-sm-6 col-md-3">
+                <label for="period" class="form-label small fw-semibold text-muted mb-1">Time Range</label>
+                <select name="period" id="period" class="form-select form-select-sm">
+                    <option value="month" {% if period == 'month' %}selected{% endif %}>Particular Month</option>
+                    <option value="year" {% if period == 'year' %}selected{% endif %}>Full Year</option>
+                    <option value="all" {% if period == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+
+            <!-- Month Selector -->
+            <div class="col-12 col-sm-6 col-md-3" id="monthFilterGroup" style="{% if period != 'month' %}display: none;{% endif %}">
+                <label for="month" class="form-label small fw-semibold text-muted mb-1">Month</label>
+                <select name="month" id="month" class="form-select form-select-sm">
+                    {% for m_num, m_name in month_choices %}
+                        <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>
+                            {{ m_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Year Selector -->
+            <div class="col-12 col-sm-6 col-md-2" id="yearFilterGroup" style="{% if period == 'all' %}display: none;{% endif %}">
+                <label for="year" class="form-label small fw-semibold text-muted mb-1">Year</label>
+                <select name="year" id="year" class="form-select form-select-sm">
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                            {{ y }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <input type="hidden" name="bar_view" id="filterBarView" value="{{ bar_view }}">
+
+            <!-- Filter Buttons -->
+            <div class="col-12 col-sm-6 col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm fw-semibold" id="btnFilterDashboard">
+                    Apply Filter
+                </button>
+                {% if period != 'month' or not is_current_month %}
+                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm">
+                        Current Month
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Four Summary Metric Cards -->
 <div class="row g-3 mb-4">
     <!-- Card 1: Monthly Income -->
@@ -27,7 +82,7 @@
             <div class="card-body p-3">
                 <span class="text-muted small fw-semibold text-uppercase">Total Income</span>
                 <h3 class="fw-bold text-success my-2 font-monospace">{{ monthly_income|inr }}</h3>
-                <span class="text-muted small">Current month</span>
+                <span class="text-muted small">{{ period_label }}</span>
             </div>
         </div>
     </div>
@@ -38,7 +93,7 @@
             <div class="card-body p-3">
                 <span class="text-muted small fw-semibold text-uppercase">Total Expenses</span>
                 <h3 class="fw-bold text-danger my-2 font-monospace">{{ monthly_expenses|inr }}</h3>
-                <span class="text-muted small">Current month</span>
+                <span class="text-muted small">{{ period_label }}</span>
             </div>
         </div>
     </div>
@@ -62,7 +117,7 @@
             <div class="card-body p-3">
                 <span class="text-muted small fw-semibold text-uppercase">Transactions</span>
                 <h3 class="fw-bold text-dark my-2 font-monospace">{{ monthly_tx_count }}</h3>
-                <span class="text-muted small">Logged this month</span>
+                <span class="text-muted small">{{ tx_count_label }}</span>
             </div>
         </div>
     </div>
@@ -105,8 +160,17 @@
     <!-- Left Chart: Category Breakdown Doughnut -->
     <div class="col-12 col-lg-5">
         <div class="card shadow-sm border-1 h-100 bg-white">
-            <div class="card-header bg-white border-bottom py-3">
-                <h5 class="fw-bold mb-0 fs-6">Expenses by Category ({{ current_month_name }})</h5>
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="fw-bold mb-0 fs-6">Expenses by Category ({{ overview_title }})</h5>
+                {% if period == 'month' %}
+                    <select class="form-select form-select-sm" id="pieMonthSelect" style="width: auto; min-width: 130px;" aria-label="Select month for expenses category chart">
+                        {% for m_num, m_name in month_choices %}
+                            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>
+                                {{ m_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
             </div>
             <div class="card-body d-flex flex-column justify-content-center p-3" style="min-height: 320px;">
                 {% if has_expenses %}
@@ -126,26 +190,51 @@
         </div>
     </div>
 
-    <!-- Right Chart: Six-Month Income vs Expense Bar Chart -->
+    <!-- Right Chart: Income vs Expense Bar Chart -->
     <div class="col-12 col-lg-7">
         <div class="card shadow-sm border-1 h-100 bg-white">
-            <div class="card-header bg-white border-bottom py-3">
-                <h5 class="fw-bold mb-0 fs-6">Cash Flow (Last 6 Months)</h5>
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="fw-bold mb-0 fs-6" id="barChartTitle">
+                    {% if bar_view == 'month' %}
+                        Cash Flow ({{ current_month_name }})
+                    {% elif bar_view == 'year' %}
+                        Cash Flow ({{ selected_year }})
+                    {% else %}
+                        Cash Flow (Last 6 Months)
+                    {% endif %}
+                </h5>
+                <div class="btn-group btn-group-sm" role="group" id="barViewToggle" aria-label="Cash flow period toggle">
+                    <button type="button" class="btn btn-outline-primary {% if bar_view == 'month' %}active{% endif %}" data-view="month" id="btnBarMonth">
+                        Month
+                    </button>
+                    <button type="button" class="btn btn-outline-primary {% if bar_view == '6m' %}active{% endif %}" data-view="6m" id="btnBar6M">
+                        Last 6 Months
+                    </button>
+                    <button type="button" class="btn btn-outline-primary {% if bar_view == 'year' %}active{% endif %}" data-view="year" id="btnBarYear">
+                        Year ({{ selected_year }})
+                    </button>
+                </div>
             </div>
             <div class="card-body d-flex flex-column justify-content-center p-3" style="min-height: 320px;">
-                {% if has_6m_data %}
-                    <div style="position: relative; height: 280px; width: 100%;">
-                        <canvas id="sixMonthCashFlowChart"></canvas>
-                    </div>
-                {% else %}
-                    <div class="text-center py-4 px-2">
-                        <p class="text-muted fw-semibold mb-1">No Activity In The Last 6 Months</p>
-                        <p class="text-muted small mb-3">Log your transactions to visualize monthly trends.</p>
-                        <a href="{{ url_for('transactions.create') }}" class="btn btn-outline-primary btn-sm">
-                            + Add Transaction
-                        </a>
-                    </div>
-                {% endif %}
+                {% set has_initial_bar_data = (has_single_month_data if bar_view == 'month' else (has_year_data if bar_view == 'year' else has_6m_data)) %}
+                <div id="barChartCanvasContainer" style="position: relative; height: 280px; width: 100%; {% if not has_initial_bar_data %}display: none;{% endif %}">
+                    <canvas id="sixMonthCashFlowChart"></canvas>
+                </div>
+                <div id="barChartEmptyState" class="text-center py-4 px-2" style="{% if has_initial_bar_data %}display: none;{% endif %}">
+                    <p class="text-muted fw-semibold mb-1" id="barEmptyTitle">
+                        {% if bar_view == 'month' %}
+                            No Activity For {{ current_month_name }}
+                        {% elif bar_view == 'year' %}
+                            No Activity In {{ selected_year }}
+                        {% else %}
+                            No Activity In The Last 6 Months
+                        {% endif %}
+                    </p>
+                    <p class="text-muted small mb-3">Log your transactions to visualize monthly trends.</p>
+                    <a href="{{ url_for('transactions.create') }}" class="btn btn-outline-primary btn-sm">
+                        + Add Transaction
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -237,21 +326,65 @@
      data-category-labels='{{ category_labels | tojson }}'
      data-category-amounts='{{ category_amounts | tojson }}'
      data-has-expenses="{{ 'true' if has_expenses else 'false' }}"
+     data-bar-view="{{ bar_view }}"
+     data-month-name="{{ current_month_name }}"
+     data-selected-year="{{ selected_year }}"
      data-monthly-labels='{{ monthly_labels | tojson }}'
      data-monthly-income='{{ six_month_income | tojson }}'
      data-monthly-expense='{{ six_month_expense | tojson }}'
-     data-has-6m-data="{{ 'true' if has_6m_data else 'false' }}">
+     data-has-6m-data="{{ 'true' if has_6m_data else 'false' }}"
+     data-single-month-labels='{{ single_month_labels | tojson }}'
+     data-single-month-income='{{ single_month_income | tojson }}'
+     data-single-month-expense='{{ single_month_expense | tojson }}'
+     data-has-single-month-data="{{ 'true' if has_single_month_data else 'false' }}"
+     data-year-labels='{{ year_labels | tojson }}'
+     data-year-income='{{ year_income | tojson }}'
+     data-year-expense='{{ year_expense | tojson }}'
+     data-has-year-data="{{ 'true' if has_year_data else 'false' }}">
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Dynamic time range filter toggle (Month vs Year vs All Time)
+        const periodSelect = document.getElementById('period');
+        const monthFilterGroup = document.getElementById('monthFilterGroup');
+        const yearFilterGroup = document.getElementById('yearFilterGroup');
+
+        if (periodSelect) {
+            periodSelect.addEventListener('change', function () {
+                const val = this.value;
+                if (val === 'all') {
+                    if (monthFilterGroup) monthFilterGroup.style.display = 'none';
+                    if (yearFilterGroup) yearFilterGroup.style.display = 'none';
+                } else if (val === 'year') {
+                    if (monthFilterGroup) monthFilterGroup.style.display = 'none';
+                    if (yearFilterGroup) yearFilterGroup.style.display = 'block';
+                } else {
+                    if (monthFilterGroup) monthFilterGroup.style.display = 'block';
+                    if (yearFilterGroup) yearFilterGroup.style.display = 'block';
+                }
+            });
+        }
+
+        // Quick month filter dropdown on Pie Chart card
+        const pieMonthSelect = document.getElementById('pieMonthSelect');
+        if (pieMonthSelect) {
+            pieMonthSelect.addEventListener('change', function () {
+                const url = new URL(window.location.href);
+                url.searchParams.set('period', 'month');
+                url.searchParams.set('month', this.value);
+                url.searchParams.set('year', '{{ selected_year }}');
+                window.location.href = url.toString();
+            });
+        }
+
         const chartDataEl = document.getElementById('chart-data');
         if (!chartDataEl) return;
 
         const hasExpenses = chartDataEl.getAttribute('data-has-expenses') === 'true';
-        const has6mData = chartDataEl.getAttribute('data-has-6m-data') === 'true';
+        let doughnutChart = null;
 
         // 1. Doughnut Chart: Expenses by Category
         if (hasExpenses) {
@@ -265,7 +398,7 @@
                     '#6f42c1', '#0dcaf0', '#d63384', '#6c757d', '#198754'
                 ];
 
-                new Chart(ctxDoughnut, {
+                doughnutChart = new Chart(ctxDoughnut, {
                     type: 'doughnut',
                     data: {
                         labels: categoryLabels,
@@ -305,83 +438,209 @@
             }
         }
 
-        // 2. Bar Chart: 6-Month Income vs Expenses
-        if (has6mData) {
-            const monthlyLabels = JSON.parse(chartDataEl.getAttribute('data-monthly-labels') || '[]');
-            const monthlyIncome = JSON.parse(chartDataEl.getAttribute('data-monthly-income') || '[]');
-            const monthlyExpense = JSON.parse(chartDataEl.getAttribute('data-monthly-expense') || '[]');
-            const ctxBar = document.getElementById('sixMonthCashFlowChart');
+        // 2. Bar Chart: Income vs Expenses with Period Switching (Month / 6 Months / Year)
+        const ctxBar = document.getElementById('sixMonthCashFlowChart');
+        const barCanvasContainer = document.getElementById('barChartCanvasContainer');
+        const barEmptyState = document.getElementById('barChartEmptyState');
+        const barEmptyTitle = document.getElementById('barEmptyTitle');
+        const barTitleEl = document.getElementById('barChartTitle');
 
-            if (ctxBar && monthlyLabels.length > 0) {
-                new Chart(ctxBar, {
-                    type: 'bar',
-                    data: {
-                        labels: monthlyLabels,
-                        datasets: [
-                            {
-                                label: 'Income',
-                                data: monthlyIncome,
-                                backgroundColor: '#198754',
-                                borderRadius: 4,
-                                maxBarThickness: 32
-                            },
-                            {
-                                label: 'Expense',
-                                data: monthlyExpense,
-                                backgroundColor: '#dc3545',
-                                borderRadius: 4,
-                                maxBarThickness: 32
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function (value) {
-                                        return formatINR(value);
-                                    },
-                                    font: { size: 11 }
+        const monthName = chartDataEl.getAttribute('data-month-name') || '';
+        const selectedYear = chartDataEl.getAttribute('data-selected-year') || '';
+
+        const viewsConfig = {
+            'month': {
+                labels: JSON.parse(chartDataEl.getAttribute('data-single-month-labels') || '[]'),
+                income: JSON.parse(chartDataEl.getAttribute('data-single-month-income') || '[]'),
+                expense: JSON.parse(chartDataEl.getAttribute('data-single-month-expense') || '[]'),
+                hasData: chartDataEl.getAttribute('data-has-single-month-data') === 'true',
+                title: 'Cash Flow (' + monthName + ')',
+                emptyText: 'No Activity For ' + monthName
+            },
+            '6m': {
+                labels: JSON.parse(chartDataEl.getAttribute('data-monthly-labels') || '[]'),
+                income: JSON.parse(chartDataEl.getAttribute('data-monthly-income') || '[]'),
+                expense: JSON.parse(chartDataEl.getAttribute('data-monthly-expense') || '[]'),
+                hasData: chartDataEl.getAttribute('data-has-6m-data') === 'true',
+                title: 'Cash Flow (Last 6 Months)',
+                emptyText: 'No Activity In The Last 6 Months'
+            },
+            'year': {
+                labels: JSON.parse(chartDataEl.getAttribute('data-year-labels') || '[]'),
+                income: JSON.parse(chartDataEl.getAttribute('data-year-income') || '[]'),
+                expense: JSON.parse(chartDataEl.getAttribute('data-year-expense') || '[]'),
+                hasData: chartDataEl.getAttribute('data-has-year-data') === 'true',
+                title: 'Cash Flow (' + selectedYear + ')',
+                emptyText: 'No Activity In ' + selectedYear
+            }
+        };
+
+        let initialView = chartDataEl.getAttribute('data-bar-view') || '6m';
+        if (!viewsConfig[initialView]) initialView = '6m';
+        let activeBarChart = null;
+
+        if (ctxBar) {
+            const initialCfg = viewsConfig[initialView];
+            activeBarChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: initialCfg.labels,
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: initialCfg.income,
+                            backgroundColor: '#198754',
+                            borderRadius: 4,
+                            maxBarThickness: 32
+                        },
+                        {
+                            label: 'Expense',
+                            data: initialCfg.expense,
+                            backgroundColor: '#dc3545',
+                            borderRadius: 4,
+                            maxBarThickness: 32
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return formatINR(value);
                                 },
-                                grid: {
-                                    color: '#f0f0f0'
-                                }
+                                font: { size: 11 }
                             },
-                            x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    font: { size: 11 }
-                                }
+                            grid: {
+                                color: '#f0f0f0'
                             }
                         },
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    boxWidth: 12,
-                                    padding: 12,
-                                    font: { size: 12 }
-                                }
+                        x: {
+                            grid: {
+                                display: false
                             },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        const datasetLabel = context.dataset.label || '';
-                                        const value = context.raw || 0;
-                                        return ' ' + datasetLabel + ': ' + formatINR(value);
-                                    }
+                            ticks: {
+                                font: { size: 11 }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 12,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    const value = context.raw || 0;
+                                    return ' ' + datasetLabel + ': ' + formatINR(value);
                                 }
                             }
                         }
                     }
-                });
+                }
+            });
+        }
+
+        function switchBarView(viewKey) {
+            const cfg = viewsConfig[viewKey];
+            if (!cfg) return;
+
+            // Toggle active button style
+            document.querySelectorAll('#barViewToggle button').forEach(function (btn) {
+                if (btn.getAttribute('data-view') === viewKey) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update title
+            if (barTitleEl) {
+                barTitleEl.textContent = cfg.title;
+            }
+
+            // Sync hidden form input
+            const filterBarView = document.getElementById('filterBarView');
+            if (filterBarView) {
+                filterBarView.value = viewKey;
+            }
+
+            // Show/hide empty state vs canvas
+            if (cfg.hasData) {
+                if (barCanvasContainer) barCanvasContainer.style.display = 'block';
+                if (barEmptyState) barEmptyState.style.display = 'none';
+            } else {
+                if (barCanvasContainer) barCanvasContainer.style.display = 'none';
+                if (barEmptyState) {
+                    barEmptyState.style.display = 'block';
+                    if (barEmptyTitle) barEmptyTitle.textContent = cfg.emptyText;
+                }
+            }
+
+            // Update chart data
+            if (activeBarChart) {
+                activeBarChart.data.labels = cfg.labels;
+                activeBarChart.data.datasets[0].data = cfg.income;
+                activeBarChart.data.datasets[1].data = cfg.expense;
+                activeBarChart.resize();
+                activeBarChart.update();
             }
         }
+
+        // Attach event listeners to bar toggle buttons
+        document.querySelectorAll('#barViewToggle button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const viewKey = this.getAttribute('data-view');
+                switchBarView(viewKey);
+            });
+        });
+
+        // Theme change handler for Chart.js charts
+        function updateChartTheme(theme) {
+            const isDark = theme === 'dark';
+            const tickColor = isDark ? '#8b949e' : '#6c757d';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#f0f0f0';
+            const legendColor = isDark ? '#e6edf3' : '#212529';
+            const doughnutBorder = isDark ? '#161b22' : '#ffffff';
+
+            if (doughnutChart) {
+                doughnutChart.data.datasets[0].borderColor = doughnutBorder;
+                if (doughnutChart.options.plugins && doughnutChart.options.plugins.legend) {
+                    doughnutChart.options.plugins.legend.labels.color = legendColor;
+                }
+                doughnutChart.update();
+            }
+
+            if (activeBarChart) {
+                if (activeBarChart.options.scales.x) {
+                    activeBarChart.options.scales.x.ticks.color = tickColor;
+                }
+                if (activeBarChart.options.scales.y) {
+                    activeBarChart.options.scales.y.ticks.color = tickColor;
+                    activeBarChart.options.scales.y.grid.color = gridColor;
+                }
+                if (activeBarChart.options.plugins && activeBarChart.options.plugins.legend) {
+                    activeBarChart.options.plugins.legend.labels.color = legendColor;
+                }
+                activeBarChart.update();
+            }
+        }
+
+        window.addEventListener('themeChanged', function (e) {
+            updateChartTheme(e.detail.theme);
+        });
+
+        // Apply theme immediately on initial chart creation
+        updateChartTheme(document.documentElement.getAttribute('data-bs-theme') || 'light');
     });
 </script>
 {% endblock %}

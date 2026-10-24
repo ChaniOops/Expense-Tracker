@@ -238,6 +238,89 @@ class TestDateTransitionsAndIsolation(DashboardTestCase):
         self.assertEqual(res.status_code, 302)
         self.assertIn('/login', res.location)
 
+    def test_dashboard_month_year_filter(self):
+        """Filtering dashboard by month and year accurately displays data for that specific period."""
+        self.login_as('anil@example.com')
+        # May 2026 transaction
+        tx_may = Transaction(
+            user_id=self.user1.id,
+            category_id=self.cat_food.id,
+            title='May Groceries',
+            amount=Decimal('4200.00'),
+            payment_method='Cash',
+            transaction_date=date(2026, 5, 12)
+        )
+        db.session.add(tx_may)
+        db.session.commit()
+
+        # Query May 2026
+        res = self.client.get('/?month=5&year=2026')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+
+        self.assertIn('May 2026', html)
+        self.assertIn('₹4,200.00', html)
+        self.assertIn('4200.0', html)
+        self.assertIn('data-has-expenses="true"', html)
+
+    def test_dashboard_bar_chart_period_views(self):
+        """Dashboard bar chart supports switching between Month, 6 Months, and Year periods."""
+        self.login_as('anil@example.com')
+
+        # Month view
+        res_m = self.client.get('/?bar_view=month')
+        self.assertEqual(res_m.status_code, 200)
+        html_m = res_m.data.decode('utf-8')
+        self.assertIn('data-bar-view="month"', html_m)
+
+        # Year view
+        res_y = self.client.get('/?bar_view=year')
+        self.assertEqual(res_y.status_code, 200)
+        html_y = res_y.data.decode('utf-8')
+        self.assertIn('data-bar-view="year"', html_y)
+
+    def test_dashboard_all_time_and_year_filter(self):
+        """Dashboard accurately computes All-Time and Full-Year totals across multiple years."""
+        self.login_as('anil@example.com')
+
+        # 2025 transaction
+        tx_2025 = Transaction(
+            user_id=self.user1.id,
+            category_id=self.cat_salary.id,
+            title='Salary 2025',
+            amount=Decimal('50000.00'),
+            payment_method='Bank Transfer',
+            transaction_date=date(2025, 6, 15)
+        )
+        # 2026 transaction
+        tx_2026 = Transaction(
+            user_id=self.user1.id,
+            category_id=self.cat_salary.id,
+            title='Salary 2026',
+            amount=Decimal('60000.00'),
+            payment_method='Bank Transfer',
+            transaction_date=date(2026, 6, 15)
+        )
+        db.session.add_all([tx_2025, tx_2026])
+        db.session.commit()
+
+        # Query All Time
+        res_all = self.client.get('/?period=all')
+        self.assertEqual(res_all.status_code, 200)
+        html_all = res_all.data.decode('utf-8')
+        self.assertIn('All Time', html_all)
+        self.assertIn('All time', html_all)
+        # Sum is 50,000 + 60,000 = 1,10,000.00
+        self.assertIn('₹1,10,000.00', html_all)
+
+        # Query Full Year 2025
+        res_year = self.client.get('/?period=year&year=2025')
+        self.assertEqual(res_year.status_code, 200)
+        html_year = res_year.data.decode('utf-8')
+        self.assertIn('Year 2025', html_year)
+        self.assertIn('₹50,000.00', html_year)
+        self.assertNotIn('₹1,10,000.00', html_year)
+
 
 if __name__ == '__main__':
     unittest.main()

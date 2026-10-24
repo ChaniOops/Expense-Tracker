@@ -122,5 +122,38 @@ class TestPasswordVisibilityMarkup(unittest.TestCase):
         self.assertNotIn('$', html_list)
 
 
+class TestThemeToggle(unittest.TestCase):
+    """Test presence of dark/light theme toggle button and theme initialization attributes."""
+
+    def setUp(self):
+        self.app = create_app({
+            'TESTING': True,
+            'WTF_CSRF_ENABLED': False,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+            'SERVER_NAME': 'localhost',
+        })
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        self.client = self.app.test_client()
+        db.create_all()
+        seed_categories(db.session)
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_base_template_has_theme_toggle_and_attributes(self):
+        """Theme toggle button and data-bs-theme attribute are present in base template."""
+        res = self.client.get('/login')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+
+        self.assertIn('data-bs-theme="light"', html)
+        self.assertIn('id="themeToggleBtn"', html)
+        self.assertIn('theme-icon-sun', html)
+        self.assertIn('theme-icon-moon', html)
+
+
 if __name__ == '__main__':
     unittest.main()
